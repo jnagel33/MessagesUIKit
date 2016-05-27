@@ -24,8 +24,6 @@ class AddressBookPersonContactAlias : NSObject, ContactAlias {
   
   var label: String? { return entry.label != nil ? ABAddressBookCopyLocalizedLabel(entry.label).takeRetainedValue() as String : nil }
   
-  var displayValue: String { return entry.value as! String }
-  
   var value: String { return entry.value as! String }
   
 }
