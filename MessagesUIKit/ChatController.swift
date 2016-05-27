@@ -62,7 +62,9 @@ public class ChatController: UIViewController {
   
   public var chat : Chat? {
     didSet {
-      GCD.mainQueue.async { self.updateChat() }
+      if isViewLoaded() {
+        GCD.mainQueue.async { self.updateChat() }
+      }
     }
   }
 
@@ -183,6 +185,8 @@ public class ChatController: UIViewController {
       recipientsBar.hidden = true
       
       //FIXME: navigationItem.rightBarButtonItem = chatInfoButtonItem
+      
+      updateChat()
       
       updateMessagesViewScrolled(false, animated: false)
       
@@ -342,9 +346,13 @@ public class ChatController: UIViewController {
 //    
 //  }
   
-  func updateMessages() {
+  func loadMessages() {
     
     guard let chat = self.chat else {
+      return
+    }
+    
+    guard let messagesViewController = self.messagesViewController else {
       return
     }
     
@@ -361,7 +369,7 @@ public class ChatController: UIViewController {
     
     //FIXME: chatInfoViewController.chat = chat
 
-    updateMessages()
+    loadMessages()
     
     updateNavigationItem()
     
