@@ -1179,9 +1179,16 @@ extension ChatController : TURecipientsDisplayDelegate, UITableViewDataSource, U
         return
       }
       
+      let selectedRecipientAliases =
+        Set(self.recipientsBar.recipients.flatMap { ($0 as? ChatRecipient)?.alias })
+      
       for contact in contacts {
         
         guard let recipient = self.delegate?.chatController?(self, wantsRecipientForContact: contact) else {
+          return
+        }
+        
+        if selectedRecipientAliases.contains(recipient.alias) {
           return
         }
         
@@ -1204,14 +1211,16 @@ extension ChatController : TURecipientsDisplayDelegate, UITableViewDataSource, U
       
       GCD.userInitiatedQueue.async {
         
-        let foundContacts = ContactsManager.sharedProvider.searchWithQuery(searchString)
+        let foundContacts = ContactsManager.sharedProvider.searchWithQuery(searchString).prefix(100)
+        let foundRecipients = foundContacts.flatMap { self.delegate?.chatController?(self, wantsRecipientForContact: $0) }
         
         // Generate set of all aliases in use by the currently selected recipients
-        let recipientAliases =
+        let selectedRecipientAliases =
           Set(self.recipientsBar.recipients.flatMap { ($0 as? ChatRecipient)?.alias })
         
         // Exclude contacts that have already been added by matching up aliases
-        let resultsContacts = foundContacts.filter { Set($0.aliases.map { $0.value }).intersect(recipientAliases).isEmpty }
+        let resultsContacts =
+          foundRecipients.enumerate().flatMap { selectedRecipientAliases.contains($0.element.alias) ? nil : foundContacts[$0.index] }
         
         self.recipientsSearchResults = resultsContacts.isEmpty ? nil : resultsContacts
         
