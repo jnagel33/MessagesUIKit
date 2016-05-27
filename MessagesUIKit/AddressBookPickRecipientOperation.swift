@@ -41,7 +41,7 @@ public class PickAddressBookContactOperation : PickContactOperation, ABPeoplePic
   
   public func peoplePickerNavigationController(peoplePicker: ABPeoplePickerNavigationController, didSelectPerson person: ABRecord, property: ABPropertyID, identifier: ABMultiValueIdentifier) {
     
-    contact = PersonAliasDisplay(person: AddressBookPerson(record: person))
+    contacts = [PersonAliasDisplay(person: AddressBookPerson(record: person))]
     
     viewController.dismissViewControllerAnimated(true) {
       self.finish()

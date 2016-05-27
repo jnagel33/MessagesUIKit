@@ -21,7 +21,7 @@ import CoreLocation
 
 @objc public class PickContactOperation : Operation {
   
-  public var contact : Contact?
+  public var contacts : [Contact]?
   
 }
 
@@ -1175,16 +1175,20 @@ extension ChatController : TURecipientsDisplayDelegate, UITableViewDataSource, U
     
     pickOp.addObserver(BlockObserver(finishHandler: { op, error in
       
-      guard let contact = pickOp.contact else {
+      guard let contacts = pickOp.contacts else {
         return
       }
       
-      guard let recipient = self.delegate?.chatController?(self, wantsRecipientForContact: contact) else {
-        return
+      for contact in contacts {
+        
+        guard let recipient = self.delegate?.chatController?(self, wantsRecipientForContact: contact) else {
+          return
+        }
+        
+        recipientsBar.addRecipient(recipient)
+        self.recipientsDisplayController(self.recipientsDisplayController, didAddRecipient: recipient)
+        
       }
-      
-      recipientsBar.addRecipient(recipient)
-      self.recipientsDisplayController(self.recipientsDisplayController, didAddRecipient: recipient)
       
       self.updateToolbar()
     }))
