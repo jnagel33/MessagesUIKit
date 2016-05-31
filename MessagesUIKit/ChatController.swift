@@ -76,6 +76,8 @@ public class ChatController: UIViewController {
   
   private var lastSentUserStatus = UserStatus.NoStatus
   
+  private var chatTitle : ChatTitle?
+  
   private var recipientsSearchActive = false
   private var recipientsSearchResults : [Contact]?
   
@@ -383,8 +385,11 @@ public class ChatController: UIViewController {
   
   func updateNavigationItem() {
     
-    navigationItem.title = "fix title" //FIXME: chat?.familiarTitle
-    //FIXME: navigationItem.rightBarButtonItem = chat != nil ? chatInfoButtonItem : nil
+    if let chat = chat where chatTitle == nil {
+      chatTitle = generateTitleForChat(chat)
+    }
+    
+    navigationItem.title = chatTitle?.familiar(leadingMember: chat?.lastMessage?.sender ?? "")
   }
   
   func updateRecipientsBar() {
