@@ -95,13 +95,7 @@ public class MessagesViewController: UICollectionViewController, MessagesViewLay
     collectionView.registerNib(UINib(nibName: "MessagesViewActionMenuLeft", bundle: NSBundle.muik_frameworkBundle()),
       forSupplementaryViewOfKind: MessagesViewCellOrnament.ActionMenu.rawValue, withReuseIdentifier: MessagesViewCellOrnament.ActionMenu.rawValue + "Left")
     
-    messagesViewLayout.cellMargins = UIEdgeInsets(top: 2.5, left: 5, bottom: 2.5, right: 5)
-  }
-  
-  override public func viewWillAppear(animated: Bool) {
-    super.viewWillAppear(animated)
-    
-    //self.collectionView?.setContentOffset(CGPoint(x: 0, y: 3072), animated: true)
+    messagesViewLayout.cellMargins = UIEdgeInsets(top: 0, left: 5, bottom: 1, right: 5)
   }
   
   override public func viewDidAppear(animated: Bool) {
@@ -125,7 +119,13 @@ public class MessagesViewController: UICollectionViewController, MessagesViewLay
     let nextMessage : Message? = indexPath.item < messageResultsController?.lastIndex() ? messageResultsController?[indexPath.item+1] as? Message : nil
     return (previousMessage, message, nextMessage)
   }
-
+  
+  func loadMessageIndexPathsSourroundingIndex(index: Int) -> (NSIndexPath?, NSIndexPath?) {
+    let previousIndexPath : NSIndexPath? = index > 0 ? NSIndexPath(forItem: index-1, inSection: Section.Message.rawValue) : nil
+    let nextIndexPath : NSIndexPath? = index < messageResultsController?.lastIndex() ? NSIndexPath(forItem: index+1, inSection: Section.Message.rawValue) : nil
+    return (previousIndexPath, nextIndexPath)
+  }
+  
   override public func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
     return 2
   }
@@ -374,16 +374,12 @@ public class MessagesViewController: UICollectionViewController, MessagesViewLay
   
   // MARK : Collection View (Messages Layout)
   
-  func collectionView(collectionView: UICollectionView, messagesLayout: MessagesViewLayout, placementForItemAtIndexPath indexPath: NSIndexPath) -> MessagesViewCellPlacement {
+  public func collectionView(collectionView: UICollectionView, messagesLayout: MessagesViewLayout, placementForItemAtIndexPath indexPath: NSIndexPath) -> MessagesViewCellPlacement {
 
     switch Section(rawValue: indexPath.section)! {
     case .Message:
       
       let message = messageResultsController![indexPath.item] as! Message
-      
-      if indexPath.item > 5 && indexPath.item < 12 {
-        return .Flow
-      }
       
       if message.sentByMe {
         return .RightAlign
@@ -397,7 +393,7 @@ public class MessagesViewController: UICollectionViewController, MessagesViewLay
     }
   }
   
-  func collectionView(collectionView: UICollectionView, messagesLayout: MessagesViewLayout, ornamentsForItemAtIndexPath indexPath: NSIndexPath) -> Set<MessagesViewCellOrnament> {
+  public func collectionView(collectionView: UICollectionView, messagesLayout: MessagesViewLayout, ornamentsForItemAtIndexPath indexPath: NSIndexPath) -> Set<MessagesViewCellOrnament> {
     
     if indexPath.section != Section.Message.rawValue {
       return []
@@ -479,7 +475,7 @@ public class MessagesViewController: UICollectionViewController, MessagesViewLay
   public func scrollToLatestItemAnimated(animated: Bool) {
     
     if let mrc = messageResultsController {
-      let lastIndexPath = NSIndexPath(forItem: mrc.lastIndex(), inSection: 0)
+      let lastIndexPath = NSIndexPath(forItem: mrc.lastIndex(), inSection: Section.Message.rawValue)
       collectionView!.scrollToItemAtIndexPath(lastIndexPath, atScrollPosition: .Bottom, animated: animated)
     }
   }
@@ -506,7 +502,7 @@ public class MessagesViewController: UICollectionViewController, MessagesViewLay
   // MARK: Menu support
   
   override public func collectionView(collectionView: UICollectionView, shouldShowMenuForItemAtIndexPath indexPath: NSIndexPath) -> Bool {
-    return indexPath.section == 0
+    return indexPath.section == Section.Message.rawValue
   }
   
   override public func collectionView(collectionView: UICollectionView, canPerformAction action: Selector, forItemAtIndexPath indexPath: NSIndexPath, withSender sender: AnyObject?) -> Bool {
@@ -601,19 +597,43 @@ extension MessagesViewController : FetchedResultsControllerDelegate {
   
   public func controller(controller: FetchedResultsController, didChangeObject object: AnyObject, atIndex index: Int, forChangeType changeType: FetchedResultsChangeType, newIndex: Int) {
     
-    switch changeType {
-    case .Insert:
-      collectionView?.insertItemsAtIndexPaths([NSIndexPath(forItem: newIndex, inSection: 0)])
-    
-    case .Update:
-      collectionView?.reloadItemsAtIndexPaths([NSIndexPath(forItem: index, inSection: 0)])
-      
-    case .Move:
-      collectionView?.moveItemAtIndexPath(NSIndexPath(forItem: index, inSection: 0), toIndexPath: NSIndexPath(forItem: newIndex, inSection: 0))
-      
-    case .Delete:
-      collectionView?.deleteItemsAtIndexPaths([NSIndexPath(forItem: index, inSection: 0)])      
+    guard let collectionView = collectionView else {
+      return
     }
+    
+//    collectionView.performBatchUpdates({ 
+    
+      var indexPaths = [NSIndexPath]()
+      
+      switch changeType {
+      case .Insert:
+        indexPaths.append(NSIndexPath(forItem: newIndex, inSection: Section.Message.rawValue))
+        collectionView.insertItemsAtIndexPaths(indexPaths)
+        
+      case .Update:
+        indexPaths.append(NSIndexPath(forItem: index, inSection: Section.Message.rawValue))
+        collectionView.reloadItemsAtIndexPaths(indexPaths)
+        
+      case .Move:
+        indexPaths.append(NSIndexPath(forItem: newIndex, inSection: Section.Message.rawValue))
+        indexPaths.append(NSIndexPath(forItem: index, inSection: Section.Message.rawValue))
+        collectionView.moveItemAtIndexPath(indexPaths[1], toIndexPath: indexPaths[0])
+        
+      case .Delete:
+        indexPaths.append(NSIndexPath(forItem: index, inSection: Section.Message.rawValue))
+        collectionView.deleteItemsAtIndexPaths(indexPaths)
+      }
+      
+      var reloads = [NSIndexPath]()
+      for indexPath in indexPaths {
+        let (prev, next) = self.loadMessageIndexPathsSourroundingIndex(indexPath.item)
+        if let prev = prev { reloads.append(prev) }
+        if let next = next { reloads.append(next) }
+      }
+      
+      collectionView.reloadItemsAtIndexPaths(reloads)
+
+//    }, completion: nil)
     
   }
   

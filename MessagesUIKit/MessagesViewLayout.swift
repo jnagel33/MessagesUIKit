@@ -8,6 +8,33 @@
 
 import Foundation
 import UIKit
+import CocoaLumberjack
+
+
+public enum MessagesViewCellPlacement {
+  case LeftAlign, RightAlign, Flow
+}
+
+
+
+public enum MessagesViewCellOrnament : String {
+  case SenderHeader
+  case TimeHeader
+  case StatusFooter
+  case Clarify
+  case ActionMenu
+  case Quote
+}
+
+
+
+public protocol MessagesViewLayoutDelegate {
+  
+  func collectionView(collectionView: UICollectionView, messagesLayout: MessagesViewLayout, ornamentsForItemAtIndexPath: NSIndexPath) -> Set<MessagesViewCellOrnament>
+  func collectionView(collectionView: UICollectionView, messagesLayout: MessagesViewLayout, placementForItemAtIndexPath indexPath: NSIndexPath) -> MessagesViewCellPlacement
+  
+}
+
 
 
 class MessagesViewLayoutInvalidationContext : UICollectionViewLayoutInvalidationContext {
@@ -19,18 +46,7 @@ class MessagesViewLayoutInvalidationContext : UICollectionViewLayoutInvalidation
   
 }
 
-enum MessagesViewCellPlacement {
-  case LeftAlign, RightAlign, Flow
-}
 
-enum MessagesViewCellOrnament : String {
-  case SenderHeader
-  case TimeHeader
-  case StatusFooter
-  case Clarify
-  case ActionMenu
-  case Quote
-}
 
 class MessagesViewLayoutAttributes : UICollectionViewLayoutAttributes {
   
@@ -71,15 +87,7 @@ class MessagesViewLayoutAttributes : UICollectionViewLayoutAttributes {
 
 
 
-protocol MessagesViewLayoutDelegate {
-  
-  func collectionView(collectionView: UICollectionView, messagesLayout: MessagesViewLayout, ornamentsForItemAtIndexPath: NSIndexPath) -> Set<MessagesViewCellOrnament>
-  func collectionView(collectionView: UICollectionView, messagesLayout: MessagesViewLayout, placementForItemAtIndexPath indexPath: NSIndexPath) -> MessagesViewCellPlacement
-  
-}
-
-
-class MessagesViewLayout: UICollectionViewLayout {
+public class MessagesViewLayout: UICollectionViewLayout {
   
   private enum Direction {
     case Backward
@@ -161,15 +169,15 @@ class MessagesViewLayout: UICollectionViewLayout {
     super.init()
   }
   
-  required init?(coder aDecoder: NSCoder) {
+  public required init?(coder aDecoder: NSCoder) {
     super.init(coder: aDecoder)
   }
   
-  override class func layoutAttributesClass() -> AnyClass {
+  public override class func layoutAttributesClass() -> AnyClass {
     return MessagesViewLayoutAttributes.self
   }
   
-  override class func invalidationContextClass() -> AnyClass {
+  public override class func invalidationContextClass() -> AnyClass {
     return MessagesViewLayoutInvalidationContext.self
   }
   
@@ -194,7 +202,7 @@ class MessagesViewLayout: UICollectionViewLayout {
     return context
   }
   
-  override func invalidateLayoutWithContext(context: UICollectionViewLayoutInvalidationContext) {
+  public override func invalidateLayoutWithContext(context: UICollectionViewLayoutInvalidationContext) {
     
     if context.invalidateEverything {
       initialized = false
@@ -298,7 +306,7 @@ class MessagesViewLayout: UICollectionViewLayout {
     ornamentAttributes[MessagesViewCellOrnament.StatusFooter] = [NSIndexPath: OrnamentAttributes]()
   }
   
-  override func prepareLayout() {
+  public override func prepareLayout() {
     super.prepareLayout()
     
     if !initialized {
@@ -310,18 +318,14 @@ class MessagesViewLayout: UICollectionViewLayout {
 
   }
   
-  override func collectionViewContentSize() -> CGSize {
+  public override func collectionViewContentSize() -> CGSize {
     return currentContentSize
   }
   
-  override func layoutAttributesForElementsInRect(rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
+  public override func layoutAttributesForElementsInRect(rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
     
     if sectionItemCounts.reduce(0, combine: { $0 + $1 }) == 0 {
       return []
-    }
-    
-    if rect.maxY == 9338 {
-      print("here")
     }
     
     let prevActiveRangeRect = activeRangeRect
@@ -390,7 +394,7 @@ class MessagesViewLayout: UICollectionViewLayout {
       }
     }
     
-    print("dir=\(layoutDirection) from=\(rect.minY/667) to=\(rect.maxY/667) total=\(rect.size.height/667) contentSize=\(currentContentSize.width),\(currentContentSize.height)")
+    DDLogVerbose("dir=\(layoutDirection) from=\(rect.minY/667) to=\(rect.maxY/667) total=\(rect.size.height/667) contentSize=\(currentContentSize.width),\(currentContentSize.height)")
     
     let items =  performLayoutForElementsInRect(rect, startIndexPath: startIndexPath, currentY: currentY, direction: layoutDirection)
     
@@ -537,7 +541,7 @@ class MessagesViewLayout: UICollectionViewLayout {
     
           // TODO: find source of this
           if cellAttrs.yPosition != itemFrameWithMargins.minY {
-            print("whoa")
+            DDLogDebug("Mismatching Y positions")
           }
           
           cellAttrs.yPosition = itemFrameWithMargins.minY
@@ -576,7 +580,7 @@ class MessagesViewLayout: UICollectionViewLayout {
     return result
   }
   
-  override func layoutAttributesForItemAtIndexPath(indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
+  public override func layoutAttributesForItemAtIndexPath(indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
     
     let attrs : UICollectionViewLayoutAttributes
     
@@ -596,7 +600,7 @@ class MessagesViewLayout: UICollectionViewLayout {
     return attrs
   }
   
-  override func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
+  public override func layoutAttributesForSupplementaryViewOfKind(elementKind: String, atIndexPath indexPath: NSIndexPath) -> UICollectionViewLayoutAttributes? {
     
     if let ornament = MessagesViewCellOrnament(rawValue: elementKind) {
       
@@ -631,7 +635,7 @@ class MessagesViewLayout: UICollectionViewLayout {
     return nil
   }
   
-  override func shouldInvalidateLayoutForBoundsChange(newBounds: CGRect) -> Bool {
+  public override func shouldInvalidateLayoutForBoundsChange(newBounds: CGRect) -> Bool {
     
     if newBounds.size != collectionView!.frame.size {
       return true
@@ -640,7 +644,7 @@ class MessagesViewLayout: UICollectionViewLayout {
     return false
   }
   
-  override func shouldInvalidateLayoutForPreferredLayoutAttributes(prefs: UICollectionViewLayoutAttributes, withOriginalAttributes orig: UICollectionViewLayoutAttributes) -> Bool {
+  public override func shouldInvalidateLayoutForPreferredLayoutAttributes(prefs: UICollectionViewLayoutAttributes, withOriginalAttributes orig: UICollectionViewLayoutAttributes) -> Bool {
     
     switch orig.representedElementCategory {
     case .Cell:
@@ -663,8 +667,8 @@ class MessagesViewLayout: UICollectionViewLayout {
     
   }
   
-  override func invalidationContextForPreferredLayoutAttributes(preferredAttributes: UICollectionViewLayoutAttributes, withOriginalAttributes originalAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutInvalidationContext {
-    
+  public override func invalidationContextForPreferredLayoutAttributes(preferredAttributes: UICollectionViewLayoutAttributes, withOriginalAttributes originalAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutInvalidationContext {
+        
     let invalidator = MessagesViewLayoutInvalidator()
     
     switch preferredAttributes.representedElementCategory {
@@ -702,12 +706,60 @@ class MessagesViewLayout: UICollectionViewLayout {
       break
     }
     
-    // TODO: do we need this still?
+    //TODO: Is full invalidation still required?
     //invalidator.relayout = true
     
     let invalidationContext = super.invalidationContextForPreferredLayoutAttributes(preferredAttributes, withOriginalAttributes: originalAttributes) as! MessagesViewLayoutInvalidationContext
     
     return invalidator.commit(invalidationContext)
+  }
+  
+  public override func prepareForCollectionViewUpdates(updateItems: [UICollectionViewUpdateItem]) {
+    
+    let invalidator = MessagesViewLayoutInvalidator()
+    
+    for updateItem in updateItems {
+      
+      switch updateItem.updateAction {
+      case .Insert:
+        sectionItemCounts[updateItem.indexPathAfterUpdate!.section] += 1
+
+        if let itemIndexPath = updateItem.indexPathAfterUpdate {
+          let cellAttrs = CellAttributes(yPosition: 0, size: CGSizeZero, margins: UIEdgeInsetsZero)
+          let layoutAttrs = generateLayoutAttributesForItemAtIndexPath(itemIndexPath, withCellAttributes: cellAttrs)
+          refreshCellAttributes(cellAttrs, forItemAtIndexPath: itemIndexPath)
+          calculateInvalidationContext(invalidator, forCellAttributes: cellAttrs, originalAttributes: layoutAttrs)
+        }
+        
+      case.Delete:
+        sectionItemCounts[updateItem.indexPathAfterUpdate!.section] -= 1
+
+      case .Reload:
+        if let itemIndexPath = updateItem.indexPathBeforeUpdate, let cellAttrs = cellAttributes[itemIndexPath] {
+          let layoutAttrs = generateLayoutAttributesForItemAtIndexPath(itemIndexPath, withCellAttributes: cellAttrs)
+          refreshCellAttributes(cellAttrs, forItemAtIndexPath: itemIndexPath, forced: true)
+          calculateInvalidationContext(invalidator, forCellAttributes: cellAttrs, originalAttributes: layoutAttrs)
+        }
+        
+      case .Move:
+        if let itemIndexPath = updateItem.indexPathBeforeUpdate, cellAttrs = cellAttributes[itemIndexPath] {
+          let layoutAttrs = generateLayoutAttributesForItemAtIndexPath(itemIndexPath, withCellAttributes: cellAttrs)
+          refreshCellAttributes(cellAttrs, forItemAtIndexPath: itemIndexPath, forced: true)
+          calculateInvalidationContext(invalidator, forCellAttributes: cellAttrs, originalAttributes: layoutAttrs)
+        }
+
+        if let itemIndexPath = updateItem.indexPathAfterUpdate, cellAttrs = cellAttributes[itemIndexPath] {
+          let layoutAttrs = generateLayoutAttributesForItemAtIndexPath(itemIndexPath, withCellAttributes: cellAttrs)
+          refreshCellAttributes(cellAttrs, forItemAtIndexPath: itemIndexPath, forced: true)
+          calculateInvalidationContext(invalidator, forCellAttributes: cellAttrs, originalAttributes: layoutAttrs)
+        }
+        
+      case .None:
+        break
+      }
+      
+    }
+    
   }
   
   private func calculateInvalidationContext(invalidator: MessagesViewLayoutInvalidator, forCellAttributes cellAttrs: CellAttributes, originalAttributes attrs: MessagesViewLayoutAttributes) {
@@ -825,9 +877,9 @@ class MessagesViewLayout: UICollectionViewLayout {
     recalculateDependenciesForCellAttributes(cellAttrs, forItemAtIndexPath: preferredAttrs.indexPath)
   }
   
-  private func refreshCellAttributes(cellAttrs: CellAttributes, forItemAtIndexPath indexPath: NSIndexPath) {
+  private func refreshCellAttributes(cellAttrs: CellAttributes, forItemAtIndexPath indexPath: NSIndexPath, forced: Bool = false) {
     
-    refreshCellAttributes(cellAttrs, fromDelegateForItemAtIndexPath: indexPath)
+    refreshCellAttributes(cellAttrs, fromDelegateForItemAtIndexPath: indexPath, forced: forced)
     
     recalculateDependenciesForCellAttributes(cellAttrs, forItemAtIndexPath: indexPath)
   }
@@ -1060,10 +1112,8 @@ class MessagesViewLayout: UICollectionViewLayout {
     let ornamentAttrs = findOrGenerateOrnamentAttributesForOrnament(.StatusFooter, atIndexPath: indexPath, withEstimatedSize: estimatedStatusFooterSize)
     let layoutAttrs = UICollectionViewLayoutAttributes(forSupplementaryViewOfKind: MessagesViewCellOrnament.StatusFooter.rawValue, withIndexPath: indexPath)
     
-    let quoteSpace = attrs.ornaments?.contains(.Quote) ?? false ? attrs.alignmentRectInsets?.totalVertical ?? 0 : 0
-    
     layoutAttrs.size = ornamentAttrs.size
-    layoutAttrs.position = CGPoint(x: collectionView!.frame.maxX - ornamentAttrs.size.width - cellMargins.right, y: frame.maxY + quoteSpace)
+    layoutAttrs.position = CGPoint(x: collectionView!.frame.maxX - ornamentAttrs.size.width - cellMargins.right, y: frame.maxY)
     
     return layoutAttrs
   }
