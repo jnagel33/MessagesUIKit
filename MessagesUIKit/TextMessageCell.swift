@@ -45,7 +45,7 @@ public class TextMessageCell : MessageCell {
   
   override public func preferredLayoutAttributesFittingAttributes(layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
     
-    maxWidthConstraint.constant = (superview?.frame.width ?? layoutAttributes.size.width) * 0.70
+    maxWidthConstraint.constant = superview != nil ? superview!.frame.width * 0.70 : layoutAttributes.size.width
     
     return super.preferredLayoutAttributesFittingAttributes(layoutAttributes)
   }
