@@ -1859,6 +1859,8 @@ private class ValidateRecipientOperation : Operation {
         self.produceOperation(invite)
       }
       
+      self.vc.updateToolbar()
+      
       self.finish()
     }
     .error { error in
